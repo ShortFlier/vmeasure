@@ -1,0 +1,14 @@
+# 忽略以 . 开头的文件夹
+.*/
+
+# 忽略 out 文件夹
+out/
+
+# 忽略 build 文件夹
+build/
+
+
+# IDE 用户配置文件
+CMakeLists.txt.user
+CMakeLists.txt.user.*
+*.user
