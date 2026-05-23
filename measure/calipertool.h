@@ -56,8 +56,16 @@ private:
 
     std::vector<cv::Point2d> _res;
 
-
+    // core measurement implementation broken into helpers
     std::vector<cv::Point2d> measure(const cv::Mat& mat);
+
+    // helpers used by measure()
+    bool validateAndPrepare(const cv::Mat& mat);
+    void buildSampleGrid(std::vector<std::vector<cv::Point2d>>& points);
+    void sampleImage(const cv::Mat& mat, const std::vector<std::vector<cv::Point2d>>& points, cv::Mat& samples);
+    void computeProjection(const cv::Mat& samples, cv::Mat& projection);
+    void computeGradientAndFilter(cv::Mat& projection, cv::Mat& gradient);
+    void selectEdges(const cv::Mat& gradient, std::vector<int>& indices);
 
 };
 

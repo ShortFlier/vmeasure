@@ -1,7 +1,10 @@
 ﻿
 //
 
-#include "CaliperTool.h"
+#include "calipertool.h"
+#include "log.h"
+
+#include <algorithm>
 
 //返回同一直线上距离点p0为d的两个点
 //返回的向量(p1-p0)方向和dir相同
@@ -66,136 +69,144 @@ std::vector<cv::Point2d> CaliperTool::measure(const cv::Mat& mat, const cv::Poin
 */
 std::vector<cv::Point2d> CaliperTool::measure(const cv::Mat& mat)
 {
-	_res = std::vector<cv::Point2d>();
+	_res.clear();
 
-	if(mat.empty()){
-		std::cerr << "Input image is empty." << std::endl;
-		return _res;
-	}
-	//限制输入为8位单通道图像
-	if(mat.type() != CV_8UC1){
-		std::cerr << "Input image must be 8-bit single-channel." << std::endl;
+	if (!validateAndPrepare(mat)) {
 		return _res;
 	}
 
-	//设置_projectLength为奇数
-	if (_projectLength % 2 == 0) {
-		_projectLength++;
-	}
-
-	/*
-	获取点集，_from到_to上的点，每个距离为1
-	同时获取直线(_from, _to)上/下平行的_projectLength/2条上的点，两条线距离为1
-	*/
 	std::vector<std::vector<cv::Point2d>> points(_projectLength, std::vector<cv::Point2d>(_searchLength));
+	buildSampleGrid(points);
 
-	//填充中线
+	cv::Mat samples;
+	sampleImage(mat, points, samples);
+
+	cv::Mat projection;
+	computeProjection(samples, projection);
+
+	cv::Mat gradient;
+	computeGradientAndFilter(projection, gradient);
+
+	std::vector<int> indices;
+	selectEdges(gradient, indices);
+
 	std::vector<cv::Point2d>& centerLine = points[_projectLength / 2];
-	cv::Vec2d dir = _to - _from;
-	centerLine[0] = _from;
-	for(int i=1; i<_searchLength; ++i){
-		auto pair=pointsAlongLine(centerLine[i-1], dir, 1);
-		centerLine[i] = pair.second;
-	}
-
-	//填充平行线
-	cv::Vec2d perDir(dir[1], -dir[0]); // 顺时针旋转90度
-	for(int i=0; i<_searchLength; ++i){
-		int n=_projectLength/2;
-		for(int j=0; j<n; ++j){
-			auto pair=pointsAlongLine(centerLine[i], perDir, j+1);
-			points[n-1-j][i] = pair.second;
-			points[n+1+j][i] = pair.first;
+	for (int idx : indices) {
+		if (idx >= 0 && idx < static_cast<int>(centerLine.size())) {
+			_res.push_back(centerLine[idx]);
 		}
 	}
 
+	return _res;
+}
 
-	/*
-	根据点集在图片中采样
-	*/
-	cv::Mat samples(_projectLength, _searchLength, CV_8U);
-	for(int i=0; i<_projectLength; ++i){
-		for(int j=0; j<_searchLength; ++j){
+
+bool CaliperTool::validateAndPrepare(const cv::Mat& mat)
+{
+	if (mat.empty()) {
+		log_error("CaliperTool::measure Input image is empty.");
+		return false;
+	}
+	if (mat.type() != CV_8UC1) {
+		log_error("CaliperTool::measure Input image must be 8-bit single-channel.");
+		return false;
+	}
+	if (_projectLength % 2 == 0) {
+		_projectLength++;
+	}
+	return true;
+}
+
+void CaliperTool::buildSampleGrid(std::vector<std::vector<cv::Point2d>>& points)
+{
+	std::vector<cv::Point2d>& centerLine = points[_projectLength / 2];
+	cv::Vec2d dir = _to - _from;
+	centerLine[0] = _from;
+	for (int i = 1; i < _searchLength; ++i) {
+		auto pair = pointsAlongLine(centerLine[i - 1], dir, 1);
+		centerLine[i] = pair.second;
+	}
+
+	cv::Vec2d perDir(dir[1], -dir[0]);
+	for (int i = 0; i < _searchLength; ++i) {
+		int n = _projectLength / 2;
+		for (int j = 0; j < n; ++j) {
+			auto pair = pointsAlongLine(centerLine[i], perDir, j + 1);
+			points[n - 1 - j][i] = pair.second;
+			points[n + 1 + j][i] = pair.first;
+		}
+	}
+}
+
+void CaliperTool::sampleImage(const cv::Mat& mat, const std::vector<std::vector<cv::Point2d>>& points, cv::Mat& samples)
+{
+	samples.create(_projectLength, _searchLength, CV_8U);
+	for (int i = 0; i < _projectLength; ++i) {
+		for (int j = 0; j < _searchLength; ++j) {
 			cv::Point2d p = points[i][j];
 			cv::Mat subPix;
-			try{
+			try {
 				cv::getRectSubPix(mat, cv::Size(1, 1), p, subPix);
 				samples.at<uchar>(i, j) = subPix.at<uchar>(0, 0);
 			}
-			catch(const cv::Exception& e){//越界设置点为0
-				std::cout<<e.what()<<std::endl;
+			catch (const cv::Exception& e) {
+				log_warn(std::string("CaliperTool::sampleImage  ")+e.what());
 				samples.at<uchar>(i, j) = 0;
 			}
 		}
 	}
+}
 
-	/*
-	投影
-	*/
-	cv::Mat projection;
+void CaliperTool::computeProjection(const cv::Mat& samples, cv::Mat& projection)
+{
 	cv::reduce(samples, projection, 0, cv::REDUCE_AVG);
+}
 
-
-	/*
-	梯度计算
-	*/
-	cv::Mat gradient;
-	//滤波核(-1,-1,0,1,1)，长度为edgeLength*2+1
-	cv::Mat kernel(1, edgeLength*2+1, CV_32F);
-	for(int i=0; i<edgeLength; ++i){
+void CaliperTool::computeGradientAndFilter(cv::Mat& projection, cv::Mat& gradient)
+{
+	int klen = edgeLength * 2 + 1;
+	cv::Mat kernel(1, klen, CV_32F, cv::Scalar(0));
+	for (int i = 0; i < edgeLength; ++i) {
 		kernel.at<float>(0, i) = -1;
-		kernel.at<float>(0, edgeLength) = 0;
-		kernel.at<float>(0, edgeLength+1+i) = 1;
+		kernel.at<float>(0, edgeLength + 1 + i) = 1;
 	}
+	// center remains 0
 	cv::filter2D(projection, gradient, CV_32F, kernel);
 
-	//极性过滤
-	for(int i=0; i<gradient.cols; ++i){
-		//ANY保留所有梯度，BRIGHT2DARK保留负梯度，DARK2BRIGHT保留正梯度
-		if(polar==ANY){
-			gradient.at<float>(0, i) = std::abs(gradient.at<float>(0, i));
-		}else if(polar==BRIGHT2DARK){
-			if(gradient.at<float>(0, i) > 0){
-				gradient.at<float>(0, i) = 0;
-			}else{
-				gradient.at<float>(0, i) = std::abs(gradient.at<float>(0, i));
-			}
-		}else if(polar==DARK2BRIGHT){
-			if(gradient.at<float>(0, i) < 0){
-				gradient.at<float>(0, i) = 0;
-			}
-		}else{
-			std::cerr << "Invalid polar type. Using ANY." << std::endl;
-			gradient.at<float>(0, i) = std::abs(gradient.at<float>(0, i));
+	for (int i = 0; i < gradient.cols; ++i) {
+		float val = gradient.at<float>(0, i);
+		if (polar == ANY) {
+			gradient.at<float>(0, i) = std::abs(val);
+		}
+		else if (polar == BRIGHT2DARK) {
+			if (val > 0) gradient.at<float>(0, i) = 0;
+			else gradient.at<float>(0, i) = std::abs(val);
+		}
+		else if (polar == DARK2BRIGHT) {
+			if (val < 0) gradient.at<float>(0, i) = 0;
+			// positive stays as-is
+		}
+		else {
+			log_error("CaliperTool::measure Invalid polar type. Using ANY.");
+			gradient.at<float>(0, i) = std::abs(val);
 		}
 	}
+}
 
-	
-	//输出点（阈值大于0）、maxNum个
-	cv::Mat gmat;
-	gradient.convertTo(gmat, CV_8U);
-
-	//降序排序，最多maxNum个
+void CaliperTool::selectEdges(const cv::Mat& gradient, std::vector<int>& indices)
+{
 	std::vector<std::pair<float, int>> gradIndex;
-	for(int i=0; i<gradient.cols; ++i){
+	for (int i = 0; i < gradient.cols; ++i) {
 		gradIndex.emplace_back(gradient.at<float>(0, i), i);
 	}
-	std::sort(gradIndex.begin(), gradIndex.end(), [](const std::pair<float, int>& a, const std::pair<float, int>& b){
+	std::sort(gradIndex.begin(), gradIndex.end(), [](const std::pair<float, int>& a, const std::pair<float, int>& b) {
 		return a.first > b.first;
 	});
-	std::vector<int> indices;
-	for(int i=0; i<std::min(maxNum, static_cast<int>(gradIndex.size())); ++i){
-		if(gradIndex[i].first > threshold){
+	for (int i = 0; i < std::min(maxNum, static_cast<int>(gradIndex.size())); ++i) {
+		if (gradIndex[i].first > threshold) {
 			indices.push_back(gradIndex[i].second);
 		}
 	}
-	//取点
-	for(int idx: indices){
-		_res.push_back(centerLine[idx]);
-	}
-
-
-	return _res;
 }
 
 
@@ -203,7 +214,7 @@ void CaliperTool::drawRes(cv::Mat& inputoutput, cv::Scalar color, int thickness)
 	//绘制_form到_to的方向箭头
 	cv::arrowedLine(inputoutput, _from, _to, color, thickness);
 
-	//卡尺绘制范围
+	//卡尺绘制范围矩形框
 	cv::Vec2d dir = _to - _from;
 	cv::Vec2d perDir(dir[1], -dir[0]); 
 	auto pair0= pointsAlongLine(_from, perDir, _projectLength/2.0);
