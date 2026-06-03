@@ -1,4 +1,5 @@
-﻿
+﻿#include "calipertool.h"
+
 //
 
 #include "calipertool.h"
@@ -35,6 +36,17 @@ std::pair<cv::Point2d, cv::Point2d> pointsAlongLine(
 
 
 
+
+CaliperTool::Polar CaliperTool::polarInt(int i)
+{
+	Polar polar=ANY;
+	switch (i) {
+	case 1: polar = BRIGHT2DARK; break;
+	case 2: polar = DARK2BRIGHT; break;
+	}
+
+	return polar;
+}
 
 CaliperTool::CaliperTool(Polar polar, int edgeLength, int threshold, int maxNum)
 :polar(polar), edgeLength(edgeLength), threshold(threshold), maxNum(maxNum){}
@@ -175,19 +187,15 @@ void CaliperTool::computeGradientAndFilter(cv::Mat& projection, cv::Mat& gradien
 
 	for (int i = 0; i < gradient.cols; ++i) {
 		float val = gradient.at<float>(0, i);
-		if (polar == ANY) {
-			gradient.at<float>(0, i) = std::abs(val);
-		}
-		else if (polar == BRIGHT2DARK) {
+		if (polar == BRIGHT2DARK) {	//保留负值
 			if (val > 0) gradient.at<float>(0, i) = 0;
 			else gradient.at<float>(0, i) = std::abs(val);
 		}
-		else if (polar == DARK2BRIGHT) {
+		else if (polar == DARK2BRIGHT) {	//保留正值
 			if (val < 0) gradient.at<float>(0, i) = 0;
 			// positive stays as-is
 		}
 		else {
-			log_error("CaliperTool::measure Invalid polar type. Using ANY.");
 			gradient.at<float>(0, i) = std::abs(val);
 		}
 	}

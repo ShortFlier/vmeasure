@@ -1,4 +1,6 @@
 #include "circlefind.h"
+#include "circlefind.h"
+#include "circlefind.h"
 
 #include "log.h"
 
@@ -65,7 +67,24 @@ CircleFind::CircleFind(const cv::Point2d center, float radius, int num)
 }
 
 
-CircleFind::Circle CircleFind::measure(const cv::Mat& mat, SearchDir dir, CaliperTool::Polar polar, int edgeLength, int threshold, int projectLen, int searchLen){
+void CircleFind::setCircle(Circle c)
+{
+    center = c.center;
+    radius = c.radius;
+}
+
+CircleFind::SearchDir CircleFind::searchDirInt(int i)
+{
+    if (i == 0) {
+        return OUTER2INNER;
+    }
+    else
+    {
+        return INNER2OUTER;
+    }
+}
+
+CircleFind::Circle CircleFind::measure(const cv::Mat& mat, int idir, int polar, int edgeLength, int threshold, int projectLen, int searchLen){
     _res.clear();
     if(mat.empty()){
         log_error("CircleFind::measure 传入图片为空!");
@@ -76,9 +95,12 @@ CircleFind::Circle CircleFind::measure(const cv::Mat& mat, SearchDir dir, Calipe
         return _res;
     }
 
+    SearchDir dir = searchDirInt(idir);
+
     //准备卡尺
     _calipers.clear();
-    _calipers=std::vector<CaliperTool>(num, CaliperTool(polar, edgeLength, threshold, 1));
+    CaliperTool::Polar cpolar = CaliperTool::polarInt(polar);
+    _calipers=std::vector<CaliperTool>(num, CaliperTool(cpolar, edgeLength, threshold, 1));
 
     std::vector<cv::Point2d> caliperCenters(num);
     std::vector<float> caliperAngles(num);
@@ -123,6 +145,15 @@ CircleFind::Circle CircleFind::measure(const cv::Mat& mat, SearchDir dir, Calipe
 
 void CircleFind::drawRes(cv::Mat& inputoutput, cv::Scalar color, int thickness){
     //绘制圆
+    cv::Scalar _color(255 - color[0], 255 - color[1], 255 - color[2]);
+    cv::circle(inputoutput, center, radius, _color, thickness);
+
+    //绘制卡尺
+    for(int i=0; i<_calipers.size(); ++i){
+        _calipers[i].drawRes(inputoutput, _color, thickness);
+    }
+
+    //绘制拟合圆
     if(_res.center.x>0 && _res.center.y>0){
         cv::circle(inputoutput, _res.center, _res.radius, color, thickness);
         //中心点
@@ -130,12 +161,5 @@ void CircleFind::drawRes(cv::Mat& inputoutput, cv::Scalar color, int thickness){
     }else{
         log_warn("CircleFind::drawRes 无效的结果!");
         return;
-    }
-
-    //绘制卡尺
-    cv::Scalar _color(255 - color[0], 255 - color[1], 255 - color[2]);
-    std::cout<<_calipers.size()<<std::endl;
-    for(int i=0; i<_calipers.size(); ++i){
-        _calipers[i].drawRes(inputoutput, _color, thickness);
     }
 }

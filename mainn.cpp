@@ -25,7 +25,7 @@ void CaliperToolTest(){
 	cv::cvtColor(testMat, testMatGray, cv::COLOR_BGR2GRAY);
 	// cv::imshow("testMatGray", testMatGray);
 	auto res = tool.measure(testMatGray, from, to, 30);
-	std::cout << "测量结果：" << std::endl;
+	std::cout << "测量结果: " << std::endl;
 	for (const auto& pt : res) {
 		std::cout << "点坐标: (" << pt.x << ", " << pt.y << ")" << std::endl;
 	}
@@ -44,7 +44,7 @@ void CaliperToolTest(){
 }
 
 void CircleFindTest(){
-	const char* imgPath=R"(C:\Users\qiang\Desktop\新建文件夹\testCircle.bmp)";
+	const char* imgPath=R"(C:\Users\qiang\Desktop\testCircle.bmp)";
 	cv::Point2d center(210, 220);
 	float radius=110;
 

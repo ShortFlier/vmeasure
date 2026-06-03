@@ -15,6 +15,9 @@ public:
         DARK2BRIGHT = 2     //暗到亮
     };
 
+    //i=1返回BRIGHT2DARK，i=2返回DARK2BRIGHT,其他情况返回ANY
+    static Polar polarInt(int i);
+
 	CaliperTool(Polar polar=ANY, int edgeLength=1, int threshold=0, int maxNum=1);
 
     /*
@@ -56,15 +59,20 @@ private:
 
     std::vector<cv::Point2d> _res;
 
-    // core measurement implementation broken into helpers
     std::vector<cv::Point2d> measure(const cv::Mat& mat);
 
-    // helpers used by measure()
+
+    //验证图像合法性
     bool validateAndPrepare(const cv::Mat& mat);
+    //采样点集
     void buildSampleGrid(std::vector<std::vector<cv::Point2d>>& points);
+    //采样
     void sampleImage(const cv::Mat& mat, const std::vector<std::vector<cv::Point2d>>& points, cv::Mat& samples);
+    //进行投影
     void computeProjection(const cv::Mat& samples, cv::Mat& projection);
+    //执行滤波
     void computeGradientAndFilter(cv::Mat& projection, cv::Mat& gradient);
+    //获取符合要求边缘点
     void selectEdges(const cv::Mat& gradient, std::vector<int>& indices);
 
 };

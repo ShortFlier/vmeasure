@@ -7,14 +7,14 @@
 #include "calipertool.h"
 
 
-
-
 /*
 *找圆算子
 *需要知道圆的大致位置
 */
 class CircleFind{
 public:
+
+    CircleFind() = default;
     /*
     *@param center圆中心点
     *@param radius圆半径
@@ -25,8 +25,8 @@ public:
     //points中x、y小于0表示无效点
     struct Circle
     {
-        cv::Point2d center;
-        float radius;
+        cv::Point2d center= cv::Point2d(-1, -1);
+        float radius=0.0;
         std::vector<cv::Point2d> points;
 
         void clear(){
@@ -36,12 +36,17 @@ public:
         }
     };
 
+    void setCircle(Circle c);
+
     /*
     *影响卡尺搜索方向
     *OUTER2INNER由圆心指向圆周向量
     *OUTER2INNER由圆周指向圆心向量
     */
-    enum SearchDir{OUTER2INNER, INNER2OUTER};
+    enum SearchDir{OUTER2INNER=0, INNER2OUTER=1};
+
+    //i=0时返回OUTER2INNER，其他情况返回INNER2OUTER
+    static SearchDir searchDirInt(int i);
     
     /*
     *搜索圆，使用CaliperTool搜索点，其中从0度位置开始逆时针摆放卡尺
@@ -53,7 +58,7 @@ public:
     *@param projectLen卡尺投影长度
     *@param searchLen卡尺搜索长度
     */
-    Circle measure(const cv::Mat& mat, SearchDir dir, CaliperTool::Polar polar, int edgeLength, int threshold, int projectLen, int searchLen);
+    Circle measure(const cv::Mat& mat, int dir, int polar, int edgeLength, int threshold, int projectLen, int searchLen);
 
     //绘制测量结果
     void drawRes(cv::Mat& inputoutput, cv::Scalar color, int thickness=1);
@@ -68,5 +73,12 @@ private:
     Circle _res;
     std::vector<CaliperTool> _calipers;
 };
+
+
+inline bool validCircle(CircleFind::Circle c) {
+    cv::Point2d& p=c.center;
+    return p.x >= 0 && p.y >= 0;
+}
+
 
 #endif
