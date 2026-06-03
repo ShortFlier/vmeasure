@@ -40,8 +40,8 @@ public:
 
     /*
     *影响卡尺搜索方向
-    *OUTER2INNER由圆心指向圆周向量
-    *OUTER2INNER由圆周指向圆心向量
+    *OUTER2INNER，由外向内，由圆周指向圆心向量
+    *INNER2OUTER，由内向外，由圆心指向圆周向量
     */
     enum SearchDir{OUTER2INNER=0, INNER2OUTER=1};
 
