@@ -17,7 +17,7 @@ project ("CaliperTool")
 
 add_subdirectory(measure)
 
-add_executable(CaliperTool "mainn.cpp")
+add_executable(CaliperTool "main.cpp")
 
 target_link_libraries(CaliperTool PRIVATE measure)
 

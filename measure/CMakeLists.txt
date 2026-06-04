@@ -5,6 +5,7 @@ project(measure)
 add_library(measure STATIC
     calipertool.cpp
     circlefind.cpp
+    ellipsefind.cpp
 )
 
 target_include_directories(measure
