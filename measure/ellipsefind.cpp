@@ -134,8 +134,12 @@ void EllipseFind::drawRes(cv::Mat& inputoutput, cv::Scalar color, int thickness)
         cv::ellipse(inputoutput, initialGuess, displayColor, thickness);
     }
 
-    for (const auto& caliper : _calipers) {
-        caliper.drawRes(inputoutput, displayColor, thickness);
+    //第一个卡尺用原色，后续卡尺用反色
+    if(!_calipers.empty()){
+        _calipers[0].drawRes(inputoutput, color, thickness);
+    }
+    for(int i=1; i<_calipers.size(); ++i){
+        _calipers[i].drawRes(inputoutput, displayColor, thickness);
     }
 
     if (validEllipse(_res)) {

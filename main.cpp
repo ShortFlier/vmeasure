@@ -61,7 +61,7 @@ void CircleFindTest(){
 void EllipseFindTest(){
 	const char* imgPath = R"(C:\Users\qiang\Desktop\testEllipes.bmp)";
 	cv::Point2d approxCenter(336, 303); // placeholder center
-	float approxRadius = 100.0f;      // placeholder radius
+	float approxRadius = 180.0f;      // placeholder radius
 	int sampleCount = 16;
 
 	cv::Mat srcMat = cv::imread(imgPath, cv::IMREAD_COLOR);
@@ -74,7 +74,7 @@ void EllipseFindTest(){
 	cv::cvtColor(srcMat, grayMat, cv::COLOR_BGR2GRAY);
 
 	EllipseFind firstPass(approxCenter, approxRadius, sampleCount);
-	EllipseFind::Ellipse firstResult = firstPass.measure(grayMat, EllipseFind::INNER2OUTER, CaliperTool::BRIGHT2DARK, 1, 20, 30, 50);
+	EllipseFind::Ellipse firstResult = firstPass.measure(grayMat, EllipseFind::INNER2OUTER, CaliperTool::BRIGHT2DARK, 1, 20, 30, 150);
 
 	cv::Mat firstDraw = srcMat.clone();
 	firstPass.drawRes(firstDraw, cv::Scalar(0, 255, 0), 2);
@@ -106,3 +106,4 @@ int main()
 	cv::waitKey(0);
 	return 0;
 }
+

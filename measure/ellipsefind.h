@@ -20,8 +20,8 @@ public:
 
     struct Ellipse {
         cv::Point2d center = cv::Point2d(-1, -1);
-        float semiMajor = 0.0f;
-        float semiMinor = 0.0f;
+        float semiMajor = 0.0f;//half of the major axis length
+        float semiMinor = 0.0f;//half of the minor axis length
         float angle = 0.0f;
         std::vector<cv::Point2d> points;
 

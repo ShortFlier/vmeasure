@@ -149,7 +149,11 @@ void CircleFind::drawRes(cv::Mat& inputoutput, cv::Scalar color, int thickness){
     cv::circle(inputoutput, center, radius, _color, thickness);
 
     //绘制卡尺
-    for(int i=0; i<_calipers.size(); ++i){
+    //第一个卡尺用原色，后续卡尺用反色
+    if(!_calipers.empty()){
+        _calipers[0].drawRes(inputoutput, color, thickness);
+    }
+    for(int i=1; i<_calipers.size(); ++i){
         _calipers[i].drawRes(inputoutput, _color, thickness);
     }
 

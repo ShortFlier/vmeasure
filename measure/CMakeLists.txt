@@ -22,3 +22,4 @@ target_link_libraries(measure
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET measure PROPERTY CXX_STANDARD 20)
 endif()
+
