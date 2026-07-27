@@ -89,8 +89,8 @@ class ImageRotatedRectLabel : public ImageLabel
         QRect _rect; //相对于图像的矩形
         int _angle; //矩形旋转角度
         QColor _color; //标签颜色
-        int _baseThickness; //标签基准线条粗细
-        int _thickness; //标签线条粗细
+        qreal _baseThickness; //标签基准线条粗细
+        qreal _thickness; //标签线条粗细
 };
 
 
@@ -140,8 +140,8 @@ class ImageEllipseLabel : public ImageLabel
         QRect _rect; //相对于图像的矩形
         int _angle; //椭圆旋转角度
         QColor _color; //标签颜色
-        int _baseThickness; //标签基准线条粗细
-        int _thickness; //标签线条粗细
+        qreal _baseThickness; //标签基准线条粗细
+        qreal _thickness; //标签线条粗细
 };
 
 
@@ -174,7 +174,8 @@ class ImageArrowLabel : public ImageLabel
         QPoint _start; //箭头起点相对于图像的坐标
         QPoint _end; //箭头终点相对于图像的坐标
         QColor _color; //标签颜色
-        int _baseThickness; //标签基准线条粗细
-        int _thickness; //标签线条粗细
-        int _arrowSize; //箭头大小
+        qreal _baseThickness; //标签基准线条粗细
+        qreal _thickness; //标签线条粗细
+        qreal _baseArrowSize; //箭头基准大小
+        qreal _arrowSize; //箭头大小
 };
