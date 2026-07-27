@@ -17,6 +17,7 @@ class ImageLabel : public QGraphicsItem
 /*
 * 图像点标签
 * 十字标记
+*图形项(0,0)位置是点标签的中心点
 */
 class ImagePointLabel : public ImageLabel
 {
@@ -54,6 +55,7 @@ class ImagePointLabel : public ImageLabel
 
 /*
 *旋转矩形标签
+*图形项(0,0)位置是矩形中心点
 */
 class ImageRotatedRectLabel : public ImageLabel
 {
@@ -87,6 +89,7 @@ class ImageRotatedRectLabel : public ImageLabel
         QRect _rect; //相对于图像的矩形
         int _angle; //矩形旋转角度
         QColor _color; //标签颜色
+        int _baseThickness; //标签基准线条粗细
         int _thickness; //标签线条粗细
 };
 
@@ -94,6 +97,7 @@ class ImageRotatedRectLabel : public ImageLabel
 
 /*
 *圆及椭圆标签
+*图形项(0,0)位置是圆/椭圆的中心点
 */
 class ImageEllipseLabel : public ImageLabel
 {
@@ -136,5 +140,41 @@ class ImageEllipseLabel : public ImageLabel
         QRect _rect; //相对于图像的矩形
         int _angle; //椭圆旋转角度
         QColor _color; //标签颜色
+        int _baseThickness; //标签基准线条粗细
         int _thickness; //标签线条粗细
+};
+
+
+
+
+/*
+*箭头标签
+*图形项(0,0)位置是箭头起点和终点的中心点
+*/
+class ImageArrowLabel : public ImageLabel
+{
+    public:
+        /*
+        * @param start: 箭头起点相对于图像的坐标
+        * @param end: 箭头终点相对于图像的坐标
+        * @param color: 标签颜色
+        * @param thickness: 标签线条粗细
+        */
+        ImageArrowLabel(QPoint start, QPoint end, QColor color = Qt::red, int thickness = 2, int arrowSize = 5, QGraphicsItem *parent = nullptr);
+
+        QRectF boundingRect() const override;
+        
+        void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+
+        QPointF imagePos() const override;
+
+        void onViewScaleChanged(qreal viewScale) override;
+
+    private:
+        QPoint _start; //箭头起点相对于图像的坐标
+        QPoint _end; //箭头终点相对于图像的坐标
+        QColor _color; //标签颜色
+        int _baseThickness; //标签基准线条粗细
+        int _thickness; //标签线条粗细
+        int _arrowSize; //箭头大小
 };

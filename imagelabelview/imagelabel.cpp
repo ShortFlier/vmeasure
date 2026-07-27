@@ -29,12 +29,12 @@ void ImagePointLabel::paint(QPainter *painter, const QStyleOptionGraphicsItem *o
 }
 
 ImageRotatedRectLabel::ImageRotatedRectLabel(QRect rect, int angle, QColor color, int thickness, QGraphicsItem *parent)
-    : ImageLabel(parent), _rect(rect), _angle(angle), _color(color), _thickness(thickness)
+    : ImageLabel(parent), _rect(rect), _angle(angle), _color(color), _baseThickness(std::max(1, thickness)), _thickness(std::max(1, thickness))
 {
 }
 
 ImageRotatedRectLabel::ImageRotatedRectLabel(int w, int h, QPoint center, int angle, QColor color, int thickness, QGraphicsItem *parent)
-    : ImageLabel(parent), _rect(center.x() - w/2, center.y() - h/2, w, h), _angle(angle), _color(color), _thickness(thickness)
+    : ImageLabel(parent), _rect(center.x() - w/2, center.y() - h/2, w, h), _angle(angle), _color(color), _baseThickness(std::max(1, thickness)), _thickness(std::max(1, thickness))
 {
 }
 
@@ -69,7 +69,8 @@ QRectF ImageRotatedRectLabel::boundingRect() const{
 void ImageRotatedRectLabel::onViewScaleChanged(qreal viewScale)
 {
     // 根据视图缩放调整标签线条粗细。
-    const int newThickness = std::max(1, static_cast<int>(4 / viewScale));
+    const qreal safeScale = (viewScale > 0.0) ? viewScale : 1.0;
+    const int newThickness = std::max(1, static_cast<int>(_baseThickness / safeScale));
     if (newThickness != _thickness) {
         // 线宽变化会影响 boundingRect，先通知场景更新图元几何范围。
         prepareGeometryChange();
@@ -79,12 +80,12 @@ void ImageRotatedRectLabel::onViewScaleChanged(qreal viewScale)
 }
 
 ImageEllipseLabel::ImageEllipseLabel(QPoint center, int radius, QColor color, int thickness, QGraphicsItem *parent)
-    : ImageLabel(parent), _rect(center.x() - radius, center.y() - radius, radius * 2, radius * 2), _angle(0), _color(color), _thickness(thickness)
+    : ImageLabel(parent), _rect(center.x() - radius, center.y() - radius, radius * 2, radius * 2), _angle(0), _color(color), _baseThickness(std::max(1, thickness)), _thickness(std::max(1, thickness))
 {
 }
 
 ImageEllipseLabel::ImageEllipseLabel(QRect rect, int angle, QColor color, int thickness, QGraphicsItem *parent)
-    : ImageLabel(parent), _rect(rect), _angle(angle), _color(color), _thickness(thickness)
+    : ImageLabel(parent), _rect(rect), _angle(angle), _color(color), _baseThickness(std::max(1, thickness)), _thickness(std::max(1, thickness))
 {
 }
 
@@ -93,7 +94,8 @@ ImageEllipseLabel::ImageEllipseLabel(QPoint center, int rx, int ry, int angle, Q
       _rect(center.x() - rx, center.y() - ry, rx * 2, ry * 2),
       _angle(angle),
       _color(color),
-      _thickness(thickness)
+    _baseThickness(std::max(1, thickness)),
+    _thickness(std::max(1, thickness))
 {
 }
 
@@ -131,7 +133,72 @@ void ImageEllipseLabel::paint(QPainter *painter, const QStyleOptionGraphicsItem 
 void ImageEllipseLabel::onViewScaleChanged(qreal viewScale)
 {
     // 根据视图缩放调整标签线条粗细。
-    const int newThickness = std::max(1, static_cast<int>(4 / viewScale));
+    const qreal safeScale = (viewScale > 0.0) ? viewScale : 1.0;
+    const int newThickness = std::max(1, static_cast<int>(_baseThickness / safeScale));
+    if (newThickness != _thickness) {
+        // 线宽变化会影响 boundingRect，先通知场景更新图元几何范围。
+        prepareGeometryChange();
+        _thickness = newThickness;
+    }
+    update(); // 触发重绘
+}
+
+
+
+ImageArrowLabel::ImageArrowLabel(QPoint start, QPoint end, QColor color, int thickness, int arrowSize, QGraphicsItem *parent)
+    : ImageLabel(parent), _start(start), _end(end), _color(color), _baseThickness(std::max(1, thickness)), _thickness(std::max(1, thickness)), _arrowSize(arrowSize)
+{
+}
+
+QRectF ImageArrowLabel::boundingRect() const{
+    // 图元局部坐标以箭头中点(0,0)为原点。
+    const QPointF center = (_start + _end) / 2.0;
+    const QPointF startLocal = QPointF(_start) - center;
+    const QPointF endLocal = QPointF(_end) - center;
+
+    const qreal minX = std::min(startLocal.x(), endLocal.x());
+    const qreal minY = std::min(startLocal.y(), endLocal.y());
+    const qreal maxX = std::max(startLocal.x(), endLocal.x());
+    const qreal maxY = std::max(startLocal.y(), endLocal.y());
+
+    // 箭头头部会超出主线，额外留出边距，避免高缩放下被裁剪。
+    const qreal margin = std::max(_thickness / 2.0, static_cast<qreal>(_arrowSize)) + 1.0;
+    return QRectF(QPointF(minX, minY), QPointF(maxX, maxY)).adjusted(-margin, -margin, margin, margin);
+}
+
+void ImageArrowLabel::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget){
+    
+    Q_UNUSED(option);
+    Q_UNUSED(widget);
+
+    // 箭头中心在(0,0)位置。
+    const QPointF center = (_start + _end) / 2.0;
+    const QPointF startLocal = QPointF(_start) - center;
+    const QPointF endLocal = QPointF(_end) - center;
+
+    painter->setPen(QPen(_color, _thickness));
+    painter->drawLine(startLocal, endLocal);
+
+    // 绘制箭头
+    const double angle = std::atan2(endLocal.y() - startLocal.y(), endLocal.x() - startLocal.x());
+    QPointF arrowP1 = endLocal - QPointF(std::cos(angle + M_PI / 6) * _arrowSize,
+                                        std::sin(angle + M_PI / 6) * _arrowSize);
+    QPointF arrowP2 = endLocal - QPointF(std::cos(angle - M_PI / 6) * _arrowSize,
+                                        std::sin(angle - M_PI / 6) * _arrowSize);
+    QPolygonF arrowHead;
+    arrowHead << endLocal << arrowP1 << arrowP2;
+    painter->setBrush(_color);
+    painter->drawPolygon(arrowHead);
+}
+
+QPointF ImageArrowLabel::imagePos() const{
+    return QPointF((_start.x() + _end.x()) / 2.0, (_start.y() + _end.y()) / 2.0);
+}
+
+void ImageArrowLabel::onViewScaleChanged(qreal viewScale){
+    // 根据视图缩放调整标签线条粗细。
+    const qreal safeScale = (viewScale > 0.0) ? viewScale : 1.0;
+    const int newThickness = std::max(1, static_cast<int>(_baseThickness / safeScale));
     if (newThickness != _thickness) {
         // 线宽变化会影响 boundingRect，先通知场景更新图元几何范围。
         prepareGeometryChange();

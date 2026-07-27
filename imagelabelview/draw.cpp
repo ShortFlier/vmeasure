@@ -14,10 +14,17 @@ void drawCaliperToolView(ImageLabelView* view, const CaliperTool& caliperTool, c
 
     view->addLabel(new ImageRotatedRectLabel(w, h, center, angle, color, thickness));
 
+    //绘制方向箭头
+    QPoint arrowStart(caliperTool._from.x, caliperTool._from.y);
+    QPoint arrowEnd(caliperTool._to.x, caliperTool._to.y);
+    view->addLabel(new ImageArrowLabel(arrowStart, arrowEnd, color, 1, 4));
+
 
     //绘制点
+    //反色
+    QColor invColor = QColor(255 - color.red(), 255 - color.green(), 255 - color.blue());
     for(const auto& pt: caliperTool._res){
-        ImagePointLabel* label = new ImagePointLabel(QPoint(pt.x, pt.y), 8*thickness, color, thickness, angle);
+        ImagePointLabel* label = new ImagePointLabel(QPoint(pt.x, pt.y), 8*thickness, invColor, thickness, angle);
         view->addLabel(label);
     }
 }
