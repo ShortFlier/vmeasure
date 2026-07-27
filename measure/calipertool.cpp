@@ -6,6 +6,7 @@
 #include "log.h"
 
 #include <algorithm>
+#include <limits>
 
 //返回同一直线上距离点p0为d的两个点
 //返回的向量(p1-p0)方向和dir相同
@@ -48,8 +49,19 @@ CaliperTool::Polar CaliperTool::polarInt(int i)
 	return polar;
 }
 
-CaliperTool::CaliperTool(Polar polar, int edgeLength, int threshold, int maxNum)
-:polar(polar), edgeLength(edgeLength), threshold(threshold), maxNum(maxNum){}
+CaliperTool::OutputMode CaliperTool::outputModeInt(int i)
+{
+	OutputMode mode = BY_CONTRAST;
+	switch (i) {
+	case 1: mode = BY_SEARCH_DIR; break;
+	case 2: mode = BY_CENTER_DIR; break;
+	}
+
+	return mode;
+}
+
+CaliperTool::CaliperTool(Polar polar, int edgeLength, int threshold, int maxNum, OutputMode outputMode)
+:polar(polar), edgeLength(edgeLength), threshold(threshold), maxNum(maxNum), outputMode(outputMode){}
 
 std::vector<cv::Point2d> CaliperTool::measure(const cv::Mat& mat, const cv::Point2d& center, int angle, int projectLen, int searchLen)
 {
@@ -203,17 +215,88 @@ void CaliperTool::computeGradientAndFilter(cv::Mat& projection, cv::Mat& gradien
 
 void CaliperTool::selectEdges(const cv::Mat& gradient, std::vector<int>& indices)
 {
-	std::vector<std::pair<float, int>> gradIndex;
-	for (int i = 0; i < gradient.cols; ++i) {
-		gradIndex.emplace_back(gradient.at<float>(0, i), i);
+	indices.clear();
+	if (gradient.empty() || gradient.cols <= 0 || maxNum <= 0) {
+		return;
 	}
-	std::sort(gradIndex.begin(), gradIndex.end(), [](const std::pair<float, int>& a, const std::pair<float, int>& b) {
-		return a.first > b.first;
-	});
-	for (int i = 0; i < std::min(maxNum, static_cast<int>(gradIndex.size())); ++i) {
-		if (gradIndex[i].first > threshold) {
-			indices.push_back(gradIndex[i].second);
+
+	struct EdgeScore {
+		int index = 0;
+		float contrast = 0.0f;
+		float score = 0.0f;
+	};
+
+	const int n = gradient.cols;
+	const float eps = 1e-6f;
+	float maxContrast = 0.0f;
+	for (int i = 0; i < n; ++i) {
+		float val = gradient.at<float>(0, i);
+		if (val > maxContrast) {
+			maxContrast = val;
 		}
+	}
+
+	const float denominatorC = std::max(maxContrast - static_cast<float>(threshold), eps);
+	const float center = (static_cast<float>(n) - 1.0f) * 0.5f;
+	const float centerNorm = std::max(center, eps);
+	const float searchNorm = std::max(static_cast<float>(n - 1), 1.0f);
+
+	// 归一化定义：
+	// C = max(contrast - threshold, 0) / max(maxContrast - threshold, eps)
+	// S = i / max(n - 1, 1)                     (沿 _from -> _to 的搜索方向位置)
+	// D = |i - center| / max(center, eps)       (相对中心的归一化距离)
+
+	std::vector<EdgeScore> candidates;
+	candidates.reserve(n);
+	for (int i = 0; i < n; ++i) {
+		float contrast = gradient.at<float>(0, i);
+		if (contrast <= static_cast<float>(threshold)) {
+			continue;
+		}
+
+		float cNorm = std::max(contrast - static_cast<float>(threshold), 0.0f) / denominatorC;
+		float sNorm = static_cast<float>(i) / searchNorm;
+		float dNorm = std::abs(static_cast<float>(i) - center) / centerNorm;
+
+		float score = 0.0f;
+		switch (outputMode) {
+		case BY_SEARCH_DIR:
+			// 搜索方向模式：
+			// Score_search = 0.60 * (1 - S) + 0.30 * C + 0.10 * (1 - D)
+			// 分值越高越优先，强调靠近搜索起点，其次对比度，再次中心距离。
+			score = 0.60f * (1.0f - sNorm) + 0.30f * cNorm + 0.10f * (1.0f - dNorm);
+			break;
+		case BY_CENTER_DIR:
+			// 中心方向模式：
+			// Score_center = 0.60 * (1 - D) + 0.35 * C + 0.05 * (1 - S)
+			// 分值越高越优先，强调靠近中心，其次对比度，最后搜索方向位置。
+			score = 0.60f * (1.0f - dNorm) + 0.35f * cNorm + 0.05f * (1.0f - sNorm);
+			break;
+		case BY_CONTRAST:
+		default:
+			// 对比度模式：
+			// Score_contrast = 0.85 * C + 0.15 * (1 - D)
+			// 分值越高越优先，主要按对比度排序，中心距离用于次级稳定。
+			score = 0.85f * cNorm + 0.15f * (1.0f - dNorm);
+			break;
+		}
+
+		candidates.push_back(EdgeScore{i, contrast, score});
+	}
+
+	std::sort(candidates.begin(), candidates.end(), [](const EdgeScore& a, const EdgeScore& b) {
+		if (a.score == b.score) {
+			if (a.contrast == b.contrast) {
+				return a.index < b.index;
+			}
+			return a.contrast > b.contrast;
+		}
+		return a.score > b.score;
+	});
+
+	int count = std::min(maxNum, static_cast<int>(candidates.size()));
+	for (int i = 0; i < count; ++i) {
+		indices.push_back(candidates[i].index);
 	}
 }
 

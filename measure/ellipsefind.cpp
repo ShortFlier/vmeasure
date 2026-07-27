@@ -52,7 +52,7 @@ EllipseFind::SearchDir EllipseFind::searchDirInt(int i) {
     return (i == 0) ? OUTER2INNER : INNER2OUTER;
 }
 
-EllipseFind::Ellipse EllipseFind::measure(const cv::Mat& mat, int idir, int polar, int edgeLength, int threshold, int projectLen, int searchLen) {
+EllipseFind::Ellipse EllipseFind::measure(const cv::Mat& mat, int idir, int polar, int edgeLength, int threshold, int projectLen, int searchLen, int outputMode) {
     _res.clear();
 
     if (mat.empty()) {
@@ -71,7 +71,8 @@ EllipseFind::Ellipse EllipseFind::measure(const cv::Mat& mat, int idir, int pola
     _dir = searchDirInt(idir);
     _calipers.clear();
     CaliperTool::Polar cpolar = CaliperTool::polarInt(polar);
-    _calipers = std::vector<CaliperTool>(num, CaliperTool(cpolar, edgeLength, threshold, 1));
+    CaliperTool::OutputMode cmode = CaliperTool::outputModeInt(outputMode);
+    _calipers = std::vector<CaliperTool>(num, CaliperTool(cpolar, edgeLength, threshold, 1, cmode));
 
     _res.points = std::vector<cv::Point2d>(num);
     for (int i = 0; i < num; ++i) {

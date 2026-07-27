@@ -84,7 +84,7 @@ CircleFind::SearchDir CircleFind::searchDirInt(int i)
     }
 }
 
-CircleFind::Circle CircleFind::measure(const cv::Mat& mat, int idir, int polar, int edgeLength, int threshold, int projectLen, int searchLen){
+CircleFind::Circle CircleFind::measure(const cv::Mat& mat, int idir, int polar, int edgeLength, int threshold, int projectLen, int searchLen, int outputMode){
     _res.clear();
     if(mat.empty()){
         log_error("CircleFind::measure 传入图片为空!");
@@ -100,7 +100,8 @@ CircleFind::Circle CircleFind::measure(const cv::Mat& mat, int idir, int polar, 
     //准备卡尺
     _calipers.clear();
     CaliperTool::Polar cpolar = CaliperTool::polarInt(polar);
-    _calipers=std::vector<CaliperTool>(num, CaliperTool(cpolar, edgeLength, threshold, 1));
+    CaliperTool::OutputMode cmode = CaliperTool::outputModeInt(outputMode);
+    _calipers=std::vector<CaliperTool>(num, CaliperTool(cpolar, edgeLength, threshold, 1, cmode));
 
     std::vector<cv::Point2d> caliperCenters(num);
     std::vector<float> caliperAngles(num);

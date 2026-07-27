@@ -38,16 +38,20 @@ void drawCircleFindView(ImageLabelView* view, const CircleFind& circleFind, cons
     view->addLabel(new ImageEllipseLabel(center, circleFind.radius, color, thickness));
 
     //使用反色绘制测量圆
+    QColor invColor = QColor(255 - color.red(), 255 - color.green(), 255 - color.blue());
     if(validCircle(circleFind._res)){
-        QColor invColor = QColor(255 - color.red(), 255 - color.green(), 255 - color.blue());
         center = QPoint(circleFind._res.center.x, circleFind._res.center.y);
         view->addLabel(new ImageEllipseLabel(center, circleFind._res.radius, invColor, thickness));
     }
 
     
     //绘制卡尺
-    for(const auto& caliperTool: circleFind._calipers){
-        drawCaliperToolView(view, caliperTool, color, thickness);
+    //第一个卡尺使用反色绘制
+    if(!circleFind._calipers.empty()){
+        drawCaliperToolView(view, circleFind._calipers[0], invColor, thickness);
+        for(size_t i = 1; i < circleFind._calipers.size(); ++i){
+            drawCaliperToolView(view, circleFind._calipers[i], color, thickness);
+        }
     }
 
 }
@@ -60,15 +64,19 @@ void drawEllipseFindView(ImageLabelView* view, const EllipseFind& ellipseFind, c
     view->addLabel(new ImageEllipseLabel(center, ellipseFind.xRadius, ellipseFind.yRadius, ellipseFind.angle, color, thickness));
 
     //使用反色绘制测量椭圆
+    QColor invColor = QColor(255 - color.red(), 255 - color.green(), 255 - color.blue());
     if(validEllipse(ellipseFind._res)){
-        QColor invColor = QColor(255 - color.red(), 255 - color.green(), 255 - color.blue());
         center = QPoint(ellipseFind._res.center.x, ellipseFind._res.center.y);
         view->addLabel(new ImageEllipseLabel(center, ellipseFind._res.xRadius, ellipseFind._res.yRadius, ellipseFind._res.angle, invColor, thickness));
     }
 
     
     //绘制卡尺
-    for(const auto& caliperTool: ellipseFind._calipers){
-        drawCaliperToolView(view, caliperTool, color, thickness);
+    //第一个卡尺使用反色绘制
+    if(!ellipseFind._calipers.empty()){
+        drawCaliperToolView(view, ellipseFind._calipers[0], invColor, thickness);
+        for(size_t i = 1; i < ellipseFind._calipers.size(); ++i){
+            drawCaliperToolView(view, ellipseFind._calipers[i], color, thickness);
+        }
     }
 }

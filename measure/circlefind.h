@@ -36,6 +36,7 @@ public:
         }
     };
 
+    //设置搜索参考圆
     void setCircle(Circle c);
 
     /*
@@ -57,8 +58,9 @@ public:
     *@param threshold卡尺阈值
     *@param projectLen卡尺投影长度
     *@param searchLen卡尺搜索长度
+    *@param outputMode点输出模式
     */
-    Circle measure(const cv::Mat& mat, int dir, int polar, int edgeLength, int threshold, int projectLen, int searchLen);
+    Circle measure(const cv::Mat& mat, int dir, int polar, int edgeLength, int threshold, int projectLen, int searchLen, int outputMode=0);
 
     //绘制测量结果
     void drawRes(cv::Mat& inputoutput, cv::Scalar color, int thickness=1);

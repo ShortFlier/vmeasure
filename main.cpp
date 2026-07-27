@@ -21,7 +21,7 @@ void CaliperToolTest(){
 	CaliperTool::Polar polar=CaliperTool::DARK2BRIGHT;
 	CaliperTool tool(polar, 3);
 
-	cv::Mat testMat=cv::imread(qtcvstring(R"(C:\Users\qiang\Desktop\竹子\新建 BMP 图像.bmp)"), cv::IMREAD_COLOR);
+	cv::Mat testMat=cv::imread(qtcvstring(R"(C:\Users\qiang\Desktop\test\新建 BMP 图像.bmp)"), cv::IMREAD_COLOR);
 
 	QImage qimg=QImage(testMat.data, testMat.cols, testMat.rows, testMat.step, QImage::Format_BGR888).copy();
 
@@ -54,7 +54,7 @@ void CaliperToolTest(){
 }
 
 void CircleFindTest(){
-	const char* imgPath=R"(C:\Users\qiang\Desktop\竹子\testCircle.bmp)";
+	const char* imgPath=R"(C:\Users\qiang\Desktop\test\testCircle.bmp)";
 	cv::Point2d center(210, 220);
 	float radius=110;
 
@@ -71,7 +71,7 @@ void CircleFindTest(){
 	cv::cvtColor(srcMat, grayMat, cv::COLOR_BGR2GRAY);
 	CircleFind circleFind(center, radius, 8);
 	std::cout<<"??\n";
-	circleFind.measure(grayMat, CircleFind::INNER2OUTER, CaliperTool::BRIGHT2DARK, 1, 20, 30, 50);
+	circleFind.measure(grayMat, CircleFind::INNER2OUTER, CaliperTool::BRIGHT2DARK, 1, 20, 5, 50, CaliperTool::BY_SEARCH_DIR);
 	std::cout<<"????\n";
 	circleFind.drawRes(srcMat, cv::Scalar(0, 255, 0), 2);
 	// cv::namedWindow("res", cv::WINDOW_NORMAL);
@@ -86,7 +86,7 @@ void CircleFindTest(){
 }
 
 void EllipseFindTest(){
-	const char* imgPath = R"(C:\Users\qiang\Desktop\竹子\testEllipes.bmp)";
+	const char* imgPath = R"(C:\Users\qiang\Desktop\test\testEllipes.bmp)";
 	cv::Point2d approxCenter(336, 303); // placeholder center
 	float approxRadius = 180.0f;      // placeholder radius
 	int sampleCount = 16;
@@ -140,7 +140,7 @@ void testImageLabelRect(){
 	imageLabelView->resize(800, 600);
 	imageLabelView->show();
 
-	cv::Mat testImage = cv::imread(qtcvstring(R"(C:\Users\qiang\Desktop\竹子\20260606_160050_629_001.jpg)"), cv::IMREAD_COLOR);
+	cv::Mat testImage = cv::imread(qtcvstring(R"(C:\Users\qiang\Desktop\test\20260606_160050_629_001.jpg)"), cv::IMREAD_COLOR);
 
 	if (testImage.empty()) {
 		std::cerr << "Failed to load image." << std::endl;
@@ -157,8 +157,8 @@ int main()
 	QApplication a(__argc, __argv);
 
 	//CaliperToolTest();
-	//CircleFindTest();
-	EllipseFindTest();
+	CircleFindTest();
+	//EllipseFindTest();
 
 	//testImageLabelRect();
 

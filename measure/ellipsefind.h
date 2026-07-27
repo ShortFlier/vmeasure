@@ -34,12 +34,13 @@ public:
         }
     };
 
+    //设置搜索参考椭圆
     void setEllipse(Ellipse e);
 
     enum SearchDir { OUTER2INNER = 0, INNER2OUTER = 1 };
     static SearchDir searchDirInt(int i);
 
-    Ellipse measure(const cv::Mat& mat, int dir, int polar, int edgeLength, int threshold, int projectLen, int searchLen);
+    Ellipse measure(const cv::Mat& mat, int dir, int polar, int edgeLength, int threshold, int projectLen, int searchLen, int outputMode=0);
 
     void drawRes(cv::Mat& inputoutput, cv::Scalar color, int thickness = 1);
 

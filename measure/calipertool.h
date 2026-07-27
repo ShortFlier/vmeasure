@@ -18,7 +18,24 @@ public:
     //i=1返回BRIGHT2DARK，i=2返回DARK2BRIGHT,其他情况返回ANY
     static Polar polarInt(int i);
 
-	CaliperTool(Polar polar=ANY, int edgeLength=1, int threshold=0, int maxNum=1);
+    //点输出模式
+    enum OutputMode {
+        BY_CONTRAST = 0,       //按对比度排序
+        BY_SEARCH_DIR = 1,     //按搜索方向排序
+        BY_CENTER_DIR = 2      //按中心方向排序
+    };
+
+    //i=1返回BY_SEARCH_DIR，i=2返回BY_CENTER_DIR，其他情况返回BY_CONTRAST
+    static OutputMode outputModeInt(int i);
+
+    /*
+    * @param polar边缘极性
+    * @param edgeLength边缘长度
+    * @param threshold对比度阈值，低于该阈值的边缘不被认为是有效边缘
+    * @param maxNum最大结果数
+    * @param outputMode点输出模式
+    */
+	CaliperTool(Polar polar=ANY, int edgeLength=1, int threshold=0, int maxNum=1, OutputMode outputMode=BY_CONTRAST);
 
     /*
     * @param center卡尺中心点
@@ -47,6 +64,9 @@ public:
 
     //最大结果数
     int maxNum = 1;
+
+    //点输出模式
+    OutputMode outputMode = BY_CONTRAST;
 
 public:
 
