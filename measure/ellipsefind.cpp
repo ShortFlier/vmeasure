@@ -34,17 +34,17 @@ namespace {
 }
 
 EllipseFind::EllipseFind(const cv::Point2d center, float radius, int num)
-    : center(center), semiMajor(radius), semiMinor(radius), angle(0.0f), num(num) {
+    : center(center), xRadius(radius), yRadius(radius), angle(0.0f), num(num) {
 }
 
-EllipseFind::EllipseFind(const cv::Point2d center, float semiMajor, float semiMinor, float angle, int num)
-    : center(center), semiMajor(semiMajor), semiMinor(semiMinor), angle(angle), num(num) {
+EllipseFind::EllipseFind(const cv::Point2d center, float xRadius, float yRadius, float angle, int num)
+    : center(center), xRadius(xRadius), yRadius(yRadius), angle(angle), num(num) {
 }
 
 void EllipseFind::setEllipse(Ellipse e) {
     center = e.center;
-    semiMajor = e.semiMajor;
-    semiMinor = e.semiMinor;
+    xRadius = e.xRadius;
+    yRadius = e.yRadius;
     angle = e.angle;
 }
 
@@ -63,7 +63,7 @@ EllipseFind::Ellipse EllipseFind::measure(const cv::Mat& mat, int idir, int pola
         log_error("EllipseFind::measure requires 8-bit single-channel image!");
         return _res;
     }
-    if (semiMajor <= 0 || semiMinor <= 0) {
+    if (xRadius <= 0 || yRadius <= 0) {
         log_error("EllipseFind::measure requires a valid initial ellipse guess!");
         return _res;
     }
@@ -76,8 +76,8 @@ EllipseFind::Ellipse EllipseFind::measure(const cv::Mat& mat, int idir, int pola
     _res.points = std::vector<cv::Point2d>(num);
     for (int i = 0; i < num; ++i) {
         double param = i * 2.0 * CV_PI / num;
-        cv::Point2d samplePoint = ellipsePoint(center, semiMajor, semiMinor, angle, param);
-        cv::Point2d normal = ellipseNormal(semiMajor, semiMinor, angle, param);
+        cv::Point2d samplePoint = ellipsePoint(center, xRadius, yRadius, angle, param);
+        cv::Point2d normal = ellipseNormal(xRadius, yRadius, angle, param);
 
         double normalAngle = degrees(std::atan2(normal.y, normal.x));
         if (_dir == OUTER2INNER) {
@@ -109,8 +109,8 @@ EllipseFind::Ellipse EllipseFind::measure(const cv::Mat& mat, int idir, int pola
         try {
             cv::RotatedRect fitted = cv::fitEllipse(floatPoints);
             _res.center = fitted.center;
-            _res.semiMajor = fitted.size.width / 2.0f;
-            _res.semiMinor = fitted.size.height / 2.0f;
+            _res.xRadius = fitted.size.width / 2.0f;
+            _res.yRadius = fitted.size.height / 2.0f;
             _res.angle = fitted.angle;
         }
         catch (const cv::Exception& e) {
@@ -129,8 +129,8 @@ EllipseFind::Ellipse EllipseFind::measure(const cv::Mat& mat, int idir, int pola
 void EllipseFind::drawRes(cv::Mat& inputoutput, cv::Scalar color, int thickness) {
     cv::Scalar displayColor(255 - color[0], 255 - color[1], 255 - color[2]);
 
-    if (semiMajor > 0 && semiMinor > 0) {
-        cv::RotatedRect initialGuess(center, cv::Size2f(semiMajor * 2.0f, semiMinor * 2.0f), angle);
+    if (xRadius > 0 && yRadius > 0) {
+        cv::RotatedRect initialGuess(center, cv::Size2f(xRadius * 2.0f, yRadius * 2.0f), angle);
         cv::ellipse(inputoutput, initialGuess, displayColor, thickness);
     }
 
@@ -143,7 +143,7 @@ void EllipseFind::drawRes(cv::Mat& inputoutput, cv::Scalar color, int thickness)
     }
 
     if (validEllipse(_res)) {
-        cv::RotatedRect fitted(_res.center, cv::Size2f(_res.semiMajor * 2.0f, _res.semiMinor * 2.0f), _res.angle);
+        cv::RotatedRect fitted(_res.center, cv::Size2f(_res.xRadius * 2.0f, _res.yRadius * 2.0f), _res.angle);
         cv::ellipse(inputoutput, fitted, color, thickness);
         cv::drawMarker(inputoutput, _res.center, color, cv::MARKER_CROSS, thickness * 4, thickness);
         for (const auto& pt : _res.points) {

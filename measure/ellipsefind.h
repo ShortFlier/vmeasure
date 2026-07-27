@@ -16,19 +16,19 @@ public:
     EllipseFind(const cv::Point2d center, float radius, int num);
 
     // Create with an approximate ellipse guess
-    EllipseFind(const cv::Point2d center, float semiMajor, float semiMinor, float angle, int num);
+    EllipseFind(const cv::Point2d center, float xRadius, float yRadius, float angle, int num);
 
     struct Ellipse {
         cv::Point2d center = cv::Point2d(-1, -1);
-        float semiMajor = 0.0f;//half of the major axis length
-        float semiMinor = 0.0f;//half of the minor axis length
+        float xRadius = 0.0f;//局部坐标x方向半径
+        float yRadius = 0.0f;//局部坐标y方向半径
         float angle = 0.0f;
         std::vector<cv::Point2d> points;
 
         void clear() {
             center = cv::Point2d(-1, -1);
-            semiMajor = 0.0f;
-            semiMinor = 0.0f;
+            xRadius = 0.0f;
+            yRadius = 0.0f;
             angle = 0.0f;
             points.clear();
         }
@@ -45,19 +45,19 @@ public:
 
 public:
     cv::Point2d center;
-    float semiMajor = 0.0f;
-    float semiMinor = 0.0f;
+    float xRadius = 0.0f;
+    float yRadius = 0.0f;
     float angle = 0.0f;
     int num = 16;
 
-private:
+public:
     SearchDir _dir;
     Ellipse _res;
     std::vector<CaliperTool> _calipers;
 };
 
 inline bool validEllipse(EllipseFind::Ellipse e) {
-    return e.center.x >= 0 && e.center.y >= 0 && e.semiMajor > 0 && e.semiMinor > 0;
+    return e.center.x >= 0 && e.center.y >= 0 && e.xRadius > 0 && e.yRadius > 0;
 }
 
 #endif

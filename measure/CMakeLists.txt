@@ -9,14 +9,14 @@ add_library(measure STATIC
 )
 
 target_include_directories(measure
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        "D:/gw/opencv/opencv/build/include"
+  PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries(measure
     PUBLIC
-        opencv_world480d.lib
+    log
+    ${OpenCV_LIBS}
 )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)

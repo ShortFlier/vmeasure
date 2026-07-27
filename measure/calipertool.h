@@ -22,7 +22,7 @@ public:
 
     /*
     * @param center卡尺中心点
-    * @param angle角度制，逆时针反向为正
+    * @param angle角度制，逆时针方向为正
     * @param projectLen/searchLen 投影长度/搜索长度
     * @param mat输入图像，单通道
     */
@@ -48,7 +48,7 @@ public:
     //最大结果数
     int maxNum = 1;
 
-private:
+public:
 
     //投影长度
     int _projectLength;
@@ -59,8 +59,11 @@ private:
 
     std::vector<cv::Point2d> _res;
 
-    std::vector<cv::Point2d> measure(const cv::Mat& mat);
 
+
+private:
+
+    std::vector<cv::Point2d> measure(const cv::Mat& mat);
 
     //验证图像合法性
     bool validateAndPrepare(const cv::Mat& mat);

@@ -3,26 +3,38 @@
 #
 cmake_minimum_required (VERSION 3.8)
 
-# 如果支持，请为 MSVC 编译器启用热重载。
-if (POLICY CMP0141)
-  cmake_policy(SET CMP0141 NEW)
-  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
-endif()
 
-# opencv 库
-include_directories("D:\\gw\\opencv\\opencv\\build\\include")
-link_directories("D:\\gw\\opencv\\opencv\\build\\x64\\vc16\\lib")
+project ("vmeasure")
 
-project ("CaliperTool")
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+
+
+# OpenCV 4.8.0
+set(OpenCV_DIR "D:\\gw\\opencv\\opencv\\build-qt-contrib\\install")
+find_package(OpenCV REQUIRED)
+
+add_subdirectory(log)
 add_subdirectory(measure)
+add_subdirectory(imagelabelview)
 
-add_executable(CaliperTool "main.cpp")
+add_executable(vmeasure "main.cpp")
 
-target_link_libraries(CaliperTool PRIVATE measure)
+target_link_libraries(vmeasure PRIVATE 
+                            measure 
+                            imagelabelview 
+                            Qt${QT_VERSION_MAJOR}::Widgets
+                            ${OpenCV_LIBS})
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET CaliperTool PROPERTY CXX_STANDARD 20)
+  set_property(TARGET vmeasure PROPERTY CXX_STANDARD 20)
 endif()
 
 # TODO: 如有需要，请添加测试并安装目标。

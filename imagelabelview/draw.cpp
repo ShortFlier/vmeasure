@@ -1,0 +1,67 @@
+
+#include "draw.h"
+
+//绘制卡尺工具结果
+void drawCaliperToolView(ImageLabelView* view, const CaliperTool& caliperTool, const QColor& color, int thickness){
+    //绘制矩形
+    int h=caliperTool._projectLength;
+    int w=caliperTool._searchLength;
+    //夹角
+    double angle=atan2(caliperTool._to.y-caliperTool._from.y, caliperTool._to.x-caliperTool._from.x)*180.0/M_PI;
+
+    //中心点
+    QPoint center((caliperTool._from.x+caliperTool._to.x)/2, (caliperTool._from.y+caliperTool._to.y)/2);
+
+    view->addLabel(new ImageRotatedRectLabel(w, h, center, angle, color, thickness));
+
+
+    //绘制点
+    for(const auto& pt: caliperTool._res){
+        ImagePointLabel* label = new ImagePointLabel(QPoint(pt.x, pt.y), 8*thickness, color, thickness, angle);
+        view->addLabel(label);
+    }
+}
+
+
+
+//绘制圆检测结果
+void drawCircleFindView(ImageLabelView* view, const CircleFind& circleFind, const QColor& color, int thickness){
+    //绘制定位圆
+    QPoint center(circleFind.center.x, circleFind.center.y);
+    view->addLabel(new ImageEllipseLabel(center, circleFind.radius, color, thickness));
+
+    //使用反色绘制测量圆
+    if(validCircle(circleFind._res)){
+        QColor invColor = QColor(255 - color.red(), 255 - color.green(), 255 - color.blue());
+        center = QPoint(circleFind._res.center.x, circleFind._res.center.y);
+        view->addLabel(new ImageEllipseLabel(center, circleFind._res.radius, invColor, thickness));
+    }
+
+    
+    //绘制卡尺
+    for(const auto& caliperTool: circleFind._calipers){
+        drawCaliperToolView(view, caliperTool, color, thickness);
+    }
+
+}
+
+
+//绘制椭圆检测结果
+void drawEllipseFindView(ImageLabelView* view, const EllipseFind& ellipseFind, const QColor& color, int thickness){
+    //绘制定位椭圆
+    QPoint center(ellipseFind.center.x, ellipseFind.center.y);
+    view->addLabel(new ImageEllipseLabel(center, ellipseFind.xRadius, ellipseFind.yRadius, ellipseFind.angle, color, thickness));
+
+    //使用反色绘制测量椭圆
+    if(validEllipse(ellipseFind._res)){
+        QColor invColor = QColor(255 - color.red(), 255 - color.green(), 255 - color.blue());
+        center = QPoint(ellipseFind._res.center.x, ellipseFind._res.center.y);
+        view->addLabel(new ImageEllipseLabel(center, ellipseFind._res.xRadius, ellipseFind._res.yRadius, ellipseFind._res.angle, invColor, thickness));
+    }
+
+    
+    //绘制卡尺
+    for(const auto& caliperTool: ellipseFind._calipers){
+        drawCaliperToolView(view, caliperTool, color, thickness);
+    }
+}

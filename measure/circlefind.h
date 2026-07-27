@@ -68,7 +68,7 @@ public:
     float radius;
     int num;
 
-private:
+public:
     SearchDir _dir;
     Circle _res;
     std::vector<CaliperTool> _calipers;
