@@ -6,3 +6,4 @@
 
 ## 新增测量算子可视化支持，使用Qt组件查看测量细节
 
+Qt组件库: [ShortFlier/ImgLabelView: 基于 Qt Widgets 的图像及标签查看组件](https://github.com/ShortFlier/ImgLabelView)

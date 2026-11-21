@@ -9,7 +9,6 @@
 
 #include "calipertool.h"
 #include "circlefind.h"
-#include "ellipsefind.h"
 
 
 

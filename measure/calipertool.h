@@ -39,7 +39,7 @@ public:
 
     /*
     * @param center卡尺中心点
-    * @param angle角度制，逆时针方向为正
+    * @param angle角度制，图片坐标系中顺时针方向为正
     * @param projectLen/searchLen 投影长度/搜索长度
     * @param mat输入图像，单通道
     */

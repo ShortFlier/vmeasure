@@ -2,7 +2,6 @@
 
 #include "calipertool.h"
 #include "circlefind.h"
-#include "ellipsefind.h"
 
 #include "draw.h"
 
@@ -17,46 +16,44 @@ std::string qtcvstring(const char* str){
 }
 
 void CaliperToolTest(){
+	
 
-	CaliperTool::Polar polar=CaliperTool::DARK2BRIGHT;
-	CaliperTool tool(polar, 3);
-
-	cv::Mat testMat=cv::imread(qtcvstring(R"(C:\Users\qiang\Desktop\test\新建 BMP 图像.bmp)"), cv::IMREAD_COLOR);
-
+	cv::Mat testMat=cv::imread(qtcvstring(R"(testimg\linetest.bmp)"), cv::IMREAD_COLOR);
 	QImage qimg=QImage(testMat.data, testMat.cols, testMat.rows, testMat.step, QImage::Format_BGR888).copy();
 
-	cv::Mat resMat=testMat.clone();
+	cv::Mat grayMat;
+	cv::cvtColor(testMat, grayMat, cv::COLOR_BGR2GRAY);
 
-	cv::Point2d from(175, 225);
-	cv::Point2d to(225, 175);
-	cv::Mat testMatGray;
-	cv::cvtColor(testMat, testMatGray, cv::COLOR_BGR2GRAY);
-	auto res = tool.measure(testMatGray, from, to, 30);
-	std::cout << "????: " << std::endl;
-	for (const auto& pt : res) {
-		std::cout << "???: (" << pt.x << ", " << pt.y << ")" << std::endl;
-	}
+	//横向测量2卡尺
+	CaliperTool toolx1(CaliperTool::BRIGHT2DARK, 1, 20);
+	qDebug()<<toolx1.measure(grayMat, cv::Point2d(110, 250), 180, 20, 60).size();
+	CaliperTool toolx2(CaliperTool::DARK2BRIGHT, 1, 20);
+	qDebug()<<toolx2.measure(grayMat, cv::Point2d(400, 300), cv::Point2d(350, 300), 10).size();
 
-	cv::line(testMat, from, to, cv::Scalar(255, 0, 0), 2);
-	// cv::namedWindow("testMat", cv::WINDOW_NORMAL);
-	// cv::imshow("testMat", testMat);
-
-	tool.drawRes(resMat, cv::Scalar(0, 0, 255), 2);
-	// cv::namedWindow("CaliperTool Test", cv::WINDOW_NORMAL);
-	// cv::imshow("CaliperTool Test", resMat);
+	//竖向测量2卡尺
+	CaliperTool tooly1(CaliperTool::BRIGHT2DARK, 1, 20);
+	qDebug()<<tooly1.measure(grayMat, cv::Point2d(250, 110), -90 , 10, 40).size();
+	CaliperTool tooly2(CaliperTool::DARK2BRIGHT, 1, 20);
+	qDebug()<<tooly2.measure(grayMat, cv::Point2d(250, 400), cv::Point2d(250, 350), 10).size();
 
 	ImageLabelView* imageLabelView = new ImageLabelView();
 	imageLabelView->setWindowTitle("CaliperTool Test");
 	imageLabelView->resize(800, 600);
-	imageLabelView->setImage(qimg);
-	drawCaliperToolView(imageLabelView, tool, Qt::green, 2);
 	imageLabelView->show();
+
+	imageLabelView->setImage(qimg);
+	drawCaliperToolView(imageLabelView, toolx1, Qt::green, 2);
+	drawCaliperToolView(imageLabelView, toolx2, Qt::green, 2);
+
+	drawCaliperToolView(imageLabelView, tooly1, Qt::red, 2);
+	drawCaliperToolView(imageLabelView, tooly2, Qt::red, 2);
+
 }
 
 void CircleFindTest(){
-	const char* imgPath=R"(C:\Users\qiang\Desktop\test\testCircle.bmp)";
-	cv::Point2d center(210, 220);
-	float radius=110;
+	const char* imgPath=R"(testimg\testCircle.bmp)";
+	cv::Point2d center(250, 250);
+	float radius=120;
 
 	cv::Mat srcMat=cv::imread(qtcvstring(imgPath), cv::IMREAD_COLOR);
 	QImage qimg=QImage(srcMat.data, srcMat.cols, srcMat.rows, srcMat.step, QImage::Format_BGR888).copy();
@@ -70,9 +67,9 @@ void CircleFindTest(){
 	cv::Mat grayMat;
 	cv::cvtColor(srcMat, grayMat, cv::COLOR_BGR2GRAY);
 	CircleFind circleFind(center, radius, 8);
-	std::cout<<"??\n";
+
 	circleFind.measure(grayMat, CircleFind::INNER2OUTER, CaliperTool::BRIGHT2DARK, 1, 20, 5, 50, CaliperTool::BY_SEARCH_DIR);
-	std::cout<<"????\n";
+
 	circleFind.drawRes(srcMat, cv::Scalar(0, 255, 0), 2);
 	// cv::namedWindow("res", cv::WINDOW_NORMAL);
 	// cv::imshow("res", srcMat);
@@ -86,9 +83,9 @@ void CircleFindTest(){
 }
 
 void EllipseFindTest(){
-	const char* imgPath = R"(C:\Users\qiang\Desktop\test\testEllipes.bmp)";
-	cv::Point2d approxCenter(336, 303); // placeholder center
-	float approxRadius = 180.0f;      // placeholder radius
+	const char* imgPath = R"(testimg\testEllipes.bmp)";
+	cv::Point2d approxCenter(250, 250); // placeholder center
+	float approxRadius = 145;      // placeholder radius
 	int sampleCount = 16;
 
 	cv::Mat srcMat = cv::imread(qtcvstring(imgPath), cv::IMREAD_COLOR);
@@ -116,41 +113,14 @@ void EllipseFindTest(){
 		return;
 	}
 
-	EllipseFind refinedPass(firstResult.center, firstResult.xRadius, firstResult.yRadius, firstResult.angle, sampleCount);
-	EllipseFind::Ellipse refinedResult = refinedPass.measure(grayMat, EllipseFind::INNER2OUTER, CaliperTool::BRIGHT2DARK, 1, 20, 30, 50);
-
-	cv::Mat refinedDraw = srcMat.clone();
-	refinedPass.drawRes(refinedDraw, cv::Scalar(255, 0, 0), 2);
-	cv::putText(refinedDraw, "Ellipse refined from first result", cv::Point(20, 30), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(255, 0, 0), 2);
-	// cv::namedWindow("Ellipse Refined Pass", cv::WINDOW_NORMAL);
-	// cv::imshow("Ellipse Refined Pass", refinedDraw);
-
 	ImageLabelView* imageLabelView = new ImageLabelView();
 	imageLabelView->setWindowTitle("Ellipse Find Test");
 	imageLabelView->resize(800, 600);
 	imageLabelView->setImage(qimg);
-	drawEllipseFindView(imageLabelView, refinedPass, Qt::blue, 2);
+	drawEllipseFindView(imageLabelView, firstPass, Qt::blue, 2);
 	imageLabelView->show();
 }
 
-
-void testImageLabelRect(){
-	ImageLabelView* imageLabelView = new ImageLabelView();
-	imageLabelView->setWindowTitle("Image Label View Test");
-	imageLabelView->resize(800, 600);
-	imageLabelView->show();
-
-	cv::Mat testImage = cv::imread(qtcvstring(R"(C:\Users\qiang\Desktop\test\20260606_160050_629_001.jpg)"), cv::IMREAD_COLOR);
-
-	if (testImage.empty()) {
-		std::cerr << "Failed to load image." << std::endl;
-		return;
-	}
-
-	imageLabelView->setImage(QImage(testImage.data, testImage.cols, testImage.rows, testImage.step, QImage::Format_BGR888).copy());
-
-	imageLabelView->addLabel(new ImageRotatedRectLabel(QRect(200, 200, 400, 500), 30, Qt::green, 4));
-}
 
 int main()
 {
@@ -160,7 +130,6 @@ int main()
 	CircleFindTest();
 	//EllipseFindTest();
 
-	//testImageLabelRect();
 
 	return a.exec();
 }

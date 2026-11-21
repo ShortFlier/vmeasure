@@ -1,4 +1,4 @@
-# CMakeList.txt: CaliperTool 的 CMake 项目，在此处包括源代码并定义
+﻿# CMakeList.txt: CaliperTool 的 CMake 项目，在此处包括源代码并定义
 # 项目特定的逻辑。
 #
 cmake_minimum_required (VERSION 3.8)
@@ -25,7 +25,7 @@ add_subdirectory(log)
 add_subdirectory(measure)
 add_subdirectory(imagelabelview)
 
-add_executable(vmeasure "main.cpp")
+add_executable(vmeasure main.cpp draw.h draw.cpp)
 
 target_link_libraries(vmeasure PRIVATE 
                             measure 
