@@ -3,27 +3,29 @@
 
 //绘制卡尺工具结果
 void drawCaliperToolView(ImageLabelView* view, const CaliperTool& caliperTool, const QColor& color, int thickness){
+
     //绘制矩形
-    int h=caliperTool._projectLength;
-    int w=caliperTool._searchLength;
+    int w, h;
+    cv::Point2d from, to;
+    caliperTool.getMeasureInfo(from, to, w, h);
     //夹角
-    double angle=atan2(caliperTool._to.y-caliperTool._from.y, caliperTool._to.x-caliperTool._from.x)*180.0/M_PI;
+    double angle=atan2(to.y-from.y, to.x-from.x)*180.0/M_PI;
 
     //中心点
-    QPoint center((caliperTool._from.x+caliperTool._to.x)/2, (caliperTool._from.y+caliperTool._to.y)/2);
+    QPoint center((from.x+to.x)/2, (from.y+to.y)/2);
 
     view->addLabel(new ImageRotatedRectLabel(w, h, center, angle, color, thickness));
 
     //绘制方向箭头
-    QPoint arrowStart(caliperTool._from.x, caliperTool._from.y);
-    QPoint arrowEnd(caliperTool._to.x, caliperTool._to.y);
+    QPoint arrowStart(from.x, from.y);
+    QPoint arrowEnd(to.x, to.y);
     view->addLabel(new ImageArrowLabel(arrowStart, arrowEnd, color, 1, 4));
 
 
     //绘制点
     //反色
     QColor invColor = QColor(255 - color.red(), 255 - color.green(), 255 - color.blue());
-    for(const auto& pt: caliperTool._res){
+    for(const auto& pt: caliperTool.result()){
         ImagePointLabel* label = new ImagePointLabel(QPoint(pt.x, pt.y), 8*thickness, invColor, thickness, angle);
         view->addLabel(label);
     }

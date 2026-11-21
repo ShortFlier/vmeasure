@@ -60,12 +60,26 @@ CaliperTool::OutputMode CaliperTool::outputModeInt(int i)
 	return mode;
 }
 
-CaliperTool::CaliperTool(Polar polar, int edgeLength, int threshold, int maxNum, OutputMode outputMode)
-:polar(polar), edgeLength(edgeLength), threshold(threshold), maxNum(maxNum), outputMode(outputMode){}
+CaliperTool::CaliperTool(const Params& params)
+	: _params(params) {}
 
-std::vector<cv::Point2d> CaliperTool::measure(const cv::Mat& mat, const cv::Point2d& center, int angle, int projectLen, int searchLen)
+void CaliperTool::setParams(const Params& params)
 {
-	_projectLength = projectLen;
+	_params = params;
+}
+
+CaliperTool::Params CaliperTool::getParams() const
+{
+	return _params;
+}
+
+std::vector<cv::Point2d> CaliperTool::measure(const cv::Mat& mat, const cv::Point2d& center, int angle, int searchLen)
+{
+	if (_params.projectLen <= 0) {
+		log_error("CaliperTool::measure configured projectLen must be positive.");
+		_res.clear();
+		return _res;
+	}
 	_searchLength = searchLen;
 	//计算起始，结束点
 	auto points = pointsAlongLine(center, angle, searchLen / 2.0);
@@ -75,11 +89,15 @@ std::vector<cv::Point2d> CaliperTool::measure(const cv::Mat& mat, const cv::Poin
 	return measure(mat);
 }
 
-std::vector<cv::Point2d> CaliperTool::measure(const cv::Mat& mat, const cv::Point2d& from, const cv::Point2d& to, int projectLen)
+std::vector<cv::Point2d> CaliperTool::measure(const cv::Mat& mat, const cv::Point2d& from, const cv::Point2d& to)
 {
+	if (_params.projectLen <= 0) {
+		log_error("CaliperTool::measure configured projectLen must be positive.");
+		_res.clear();
+		return _res;
+	}
 	_from = from;
 	_to = to;
-	_projectLength = projectLen;
 	_searchLength = std::ceil(cv::norm(to - from));
 	return measure(mat);
 }
@@ -99,7 +117,7 @@ std::vector<cv::Point2d> CaliperTool::measure(const cv::Mat& mat)
 		return _res;
 	}
 
-	std::vector<std::vector<cv::Point2d>> points(_projectLength, std::vector<cv::Point2d>(_searchLength));
+	std::vector<std::vector<cv::Point2d>> points(_params.projectLen, std::vector<cv::Point2d>(_searchLength));
 	buildSampleGrid(points);
 
 	cv::Mat samples;
@@ -114,7 +132,7 @@ std::vector<cv::Point2d> CaliperTool::measure(const cv::Mat& mat)
 	std::vector<int> indices;
 	selectEdges(gradient, indices);
 
-	std::vector<cv::Point2d>& centerLine = points[_projectLength / 2];
+	std::vector<cv::Point2d>& centerLine = points[_params.projectLen / 2];
 	for (int idx : indices) {
 		if (idx >= 0 && idx < static_cast<int>(centerLine.size())) {
 			_res.push_back(centerLine[idx]);
@@ -135,15 +153,22 @@ bool CaliperTool::validateAndPrepare(const cv::Mat& mat)
 		log_error("CaliperTool::measure Input image must be 8-bit single-channel.");
 		return false;
 	}
-	if (_projectLength % 2 == 0) {
-		_projectLength++;
+	if (_params.polar != ANY && _params.polar != BRIGHT2DARK && _params.polar != DARK2BRIGHT) {
+		log_warn("CaliperTool::measure invalid polar; using ANY.");
+	}
+	if (_params.outputMode != BY_CONTRAST && _params.outputMode != BY_SEARCH_DIR &&
+		_params.outputMode != BY_CENTER_DIR) {
+		log_warn("CaliperTool::measure invalid outputMode; using BY_CONTRAST.");
+	}
+	if (_params.projectLen % 2 == 0) {
+		_params.projectLen++;
 	}
 	return true;
 }
 
 void CaliperTool::buildSampleGrid(std::vector<std::vector<cv::Point2d>>& points)
 {
-	std::vector<cv::Point2d>& centerLine = points[_projectLength / 2];
+	std::vector<cv::Point2d>& centerLine = points[_params.projectLen / 2];
 	cv::Vec2d dir = _to - _from;
 	centerLine[0] = _from;
 	for (int i = 1; i < _searchLength; ++i) {
@@ -153,7 +178,7 @@ void CaliperTool::buildSampleGrid(std::vector<std::vector<cv::Point2d>>& points)
 
 	cv::Vec2d perDir(dir[1], -dir[0]);
 	for (int i = 0; i < _searchLength; ++i) {
-		int n = _projectLength / 2;
+		int n = _params.projectLen / 2;
 		for (int j = 0; j < n; ++j) {
 			auto pair = pointsAlongLine(centerLine[i], perDir, j + 1);
 			points[n - 1 - j][i] = pair.second;
@@ -164,8 +189,8 @@ void CaliperTool::buildSampleGrid(std::vector<std::vector<cv::Point2d>>& points)
 
 void CaliperTool::sampleImage(const cv::Mat& mat, const std::vector<std::vector<cv::Point2d>>& points, cv::Mat& samples)
 {
-	samples.create(_projectLength, _searchLength, CV_8U);
-	for (int i = 0; i < _projectLength; ++i) {
+	samples.create(_params.projectLen, _searchLength, CV_8U);
+	for (int i = 0; i < _params.projectLen; ++i) {
 		for (int j = 0; j < _searchLength; ++j) {
 			cv::Point2d p = points[i][j];
 			cv::Mat subPix;
@@ -188,22 +213,22 @@ void CaliperTool::computeProjection(const cv::Mat& samples, cv::Mat& projection)
 
 void CaliperTool::computeGradientAndFilter(cv::Mat& projection, cv::Mat& gradient)
 {
-	int klen = edgeLength * 2 + 1;
+	int klen = _params.edgeLength * 2 + 1;
 	cv::Mat kernel(1, klen, CV_32F, cv::Scalar(0));
-	for (int i = 0; i < edgeLength; ++i) {
+	for (int i = 0; i < _params.edgeLength; ++i) {
 		kernel.at<float>(0, i) = -1;
-		kernel.at<float>(0, edgeLength + 1 + i) = 1;
+		kernel.at<float>(0, _params.edgeLength + 1 + i) = 1;
 	}
 	// center remains 0
 	cv::filter2D(projection, gradient, CV_32F, kernel);
 
 	for (int i = 0; i < gradient.cols; ++i) {
 		float val = gradient.at<float>(0, i);
-		if (polar == BRIGHT2DARK) {	//保留负值
+		if (_params.polar == BRIGHT2DARK) {	//保留负值
 			if (val > 0) gradient.at<float>(0, i) = 0;
 			else gradient.at<float>(0, i) = std::abs(val);
 		}
-		else if (polar == DARK2BRIGHT) {	//保留正值
+		else if (_params.polar == DARK2BRIGHT) {	//保留正值
 			if (val < 0) gradient.at<float>(0, i) = 0;
 			// positive stays as-is
 		}
@@ -216,7 +241,7 @@ void CaliperTool::computeGradientAndFilter(cv::Mat& projection, cv::Mat& gradien
 void CaliperTool::selectEdges(const cv::Mat& gradient, std::vector<int>& indices)
 {
 	indices.clear();
-	if (gradient.empty() || gradient.cols <= 0 || maxNum <= 0) {
+	if (gradient.empty() || gradient.cols <= 0 || _params.maxNum <= 0) {
 		return;
 	}
 
@@ -236,7 +261,7 @@ void CaliperTool::selectEdges(const cv::Mat& gradient, std::vector<int>& indices
 		}
 	}
 
-	const float denominatorC = std::max(maxContrast - static_cast<float>(threshold), eps);
+	const float denominatorC = std::max(maxContrast - static_cast<float>(_params.threshold), eps);
 	const float center = (static_cast<float>(n) - 1.0f) * 0.5f;
 	const float centerNorm = std::max(center, eps);
 	const float searchNorm = std::max(static_cast<float>(n - 1), 1.0f);
@@ -250,16 +275,16 @@ void CaliperTool::selectEdges(const cv::Mat& gradient, std::vector<int>& indices
 	candidates.reserve(n);
 	for (int i = 0; i < n; ++i) {
 		float contrast = gradient.at<float>(0, i);
-		if (contrast <= static_cast<float>(threshold)) {
+		if (contrast <= static_cast<float>(_params.threshold)) {
 			continue;
 		}
 
-		float cNorm = std::max(contrast - static_cast<float>(threshold), 0.0f) / denominatorC;
+		float cNorm = std::max(contrast - static_cast<float>(_params.threshold), 0.0f) / denominatorC;
 		float sNorm = static_cast<float>(i) / searchNorm;
 		float dNorm = std::abs(static_cast<float>(i) - center) / centerNorm;
 
 		float score = 0.0f;
-		switch (outputMode) {
+		switch (_params.outputMode) {
 		case BY_SEARCH_DIR:
 			// 搜索方向模式：
 			// Score_search = 0.60 * (1 - S) + 0.30 * C + 0.10 * (1 - D)
@@ -294,7 +319,7 @@ void CaliperTool::selectEdges(const cv::Mat& gradient, std::vector<int>& indices
 		return a.score > b.score;
 	});
 
-	int count = std::min(maxNum, static_cast<int>(candidates.size()));
+	int count = std::min(_params.maxNum, static_cast<int>(candidates.size()));
 	for (int i = 0; i < count; ++i) {
 		indices.push_back(candidates[i].index);
 	}
@@ -308,8 +333,8 @@ void CaliperTool::drawRes(cv::Mat& inputoutput, cv::Scalar color, int thickness)
 	//卡尺绘制范围矩形框
 	cv::Vec2d dir = _to - _from;
 	cv::Vec2d perDir(dir[1], -dir[0]); 
-	auto pair0= pointsAlongLine(_from, perDir, _projectLength/2.0);
-	auto pair1= pointsAlongLine(_to, perDir, -_projectLength/2.0);
+	auto pair0= pointsAlongLine(_from, perDir, _params.projectLen/2.0);
+	auto pair1= pointsAlongLine(_to, perDir, -_params.projectLen/2.0);
 	std::vector<cv::Point> corners = {pair0.first, pair0.second, pair1.first, pair1.second};
 	cv::polylines(inputoutput, corners, true, color, thickness);
 
@@ -319,4 +344,12 @@ void CaliperTool::drawRes(cv::Mat& inputoutput, cv::Scalar color, int thickness)
 	for(size_t i=0; i<_res.size(); ++i){
 		cv::drawMarker(inputoutput, _res[i], resColor, cv::MARKER_CROSS, thickness*4, thickness);
 	}
+}
+
+
+void CaliperTool::getMeasureInfo(cv::Point2d& from, cv::Point2d& to, int& searchLength, int& projectLen) const{
+	from=_from;
+	to=_to;
+	searchLength=_searchLength;
+	projectLen=_params.projectLen;
 }

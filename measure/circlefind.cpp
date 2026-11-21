@@ -84,12 +84,10 @@ CircleFind::SearchDir CircleFind::searchDirInt(int i) {
 }
 
 CircleFind::Circle CircleFind::measure(const cv::Mat& mat, int idir,
-                                       int polar, int edgeLength,
-                                       int threshold, int projectLen,
-                                       int searchLen, int outputMode) {
+                                       const CaliperTool::Params& params,
+                                       int searchLen) {
     EllipseFind::Ellipse ellipseResult =
-        EllipseFind::measure(mat, idir, polar, edgeLength, threshold,
-                             projectLen, searchLen, outputMode);
+        EllipseFind::measure(mat, idir, params, searchLen);
     _res.clear();
     _res.center = ellipseResult.center;
     _res.radius = ellipseResult.radius;

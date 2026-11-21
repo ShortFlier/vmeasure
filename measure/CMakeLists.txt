@@ -23,3 +23,9 @@ if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET measure PROPERTY CXX_STANDARD 20)
 endif()
 
+if(BUILD_TESTING)
+  add_executable(calipertool_test tests/calipertool_test.cpp)
+  target_link_libraries(calipertool_test PRIVATE measure)
+  add_test(NAME calipertool_test COMMAND calipertool_test)
+endif()
+

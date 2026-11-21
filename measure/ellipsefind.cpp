@@ -59,9 +59,8 @@ EllipseFind::SearchDir EllipseFind::searchDirInt(int i) {
 }
 
 EllipseFind::Ellipse EllipseFind::measure(const cv::Mat& mat, int idir,
-                                           int polar, int edgeLength,
-                                           int threshold, int projectLen,
-                                           int searchLen, int outputMode) {
+                                           const CaliperTool::Params& params,
+                                           int searchLen) {
     _res.clear();
     if (mat.empty()) {
         log_error("EllipseFind::measure 传入图片为空!");
@@ -78,10 +77,8 @@ EllipseFind::Ellipse EllipseFind::measure(const cv::Mat& mat, int idir,
 
     _dir = searchDirInt(idir);
     _calipers.clear();
-    const CaliperTool::Polar cpolar = CaliperTool::polarInt(polar);
-    const CaliperTool::OutputMode cmode = CaliperTool::outputModeInt(outputMode);
     _calipers = std::vector<CaliperTool>(
-        num, CaliperTool(cpolar, edgeLength, threshold, 1, cmode));
+        num, CaliperTool(params));
 
     _res.points = std::vector<cv::Point2d>(num);
     for (int i = 0; i < num; ++i) {
@@ -93,7 +90,7 @@ EllipseFind::Ellipse EllipseFind::measure(const cv::Mat& mat, int idir,
 
         const auto points = _calipers[i].measure(
             mat, samplePoint, static_cast<int>(std::round(caliperAngle)),
-            projectLen, searchLen);
+            searchLen);
         _res.points[i] = points.empty()
             ? cv::Point2d(-1, -1)
             : points[0];

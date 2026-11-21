@@ -6,6 +6,10 @@ cmake_minimum_required (VERSION 3.8)
 
 project ("vmeasure")
 
+if(BUILD_TESTING)
+    enable_testing()
+endif()
+
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)

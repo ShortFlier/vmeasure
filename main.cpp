@@ -25,16 +25,24 @@ void CaliperToolTest(){
 	cv::cvtColor(testMat, grayMat, cv::COLOR_BGR2GRAY);
 
 	//横向测量2卡尺
-	CaliperTool toolx1(CaliperTool::BRIGHT2DARK, 1, 20);
-	qDebug()<<toolx1.measure(grayMat, cv::Point2d(110, 250), 180, 20, 60).size();
-	CaliperTool toolx2(CaliperTool::DARK2BRIGHT, 1, 20);
-	qDebug()<<toolx2.measure(grayMat, cv::Point2d(400, 300), cv::Point2d(350, 300), 10).size();
+	CaliperTool::Params params;
+	params.polar = CaliperTool::BRIGHT2DARK;
+	params.threshold = 20;
+	params.projectLen = 20;
+	CaliperTool toolx1(params);
+	qDebug()<<toolx1.measure(grayMat, cv::Point2d(110, 250), 180, 60).size();
+	params.polar = CaliperTool::DARK2BRIGHT;
+	params.projectLen = 10;
+	CaliperTool toolx2(params);
+	qDebug()<<toolx2.measure(grayMat, cv::Point2d(400, 300), cv::Point2d(350, 300)).size();
 
 	//竖向测量2卡尺
-	CaliperTool tooly1(CaliperTool::BRIGHT2DARK, 1, 20);
-	qDebug()<<tooly1.measure(grayMat, cv::Point2d(250, 110), -90 , 10, 40).size();
-	CaliperTool tooly2(CaliperTool::DARK2BRIGHT, 1, 20);
-	qDebug()<<tooly2.measure(grayMat, cv::Point2d(250, 400), cv::Point2d(250, 350), 10).size();
+	params.polar = CaliperTool::BRIGHT2DARK;
+	CaliperTool tooly1(params);
+	qDebug()<<tooly1.measure(grayMat, cv::Point2d(250, 110), -90 , 40).size();
+	params.polar = CaliperTool::DARK2BRIGHT;
+	CaliperTool tooly2(params);
+	qDebug()<<tooly2.measure(grayMat, cv::Point2d(250, 400), cv::Point2d(250, 350)).size();
 
 	ImageLabelView* imageLabelView = new ImageLabelView();
 	imageLabelView->setWindowTitle("CaliperTool Test");
@@ -68,7 +76,12 @@ void CircleFindTest(){
 	cv::cvtColor(srcMat, grayMat, cv::COLOR_BGR2GRAY);
 	CircleFind circleFind(center, radius, 8);
 
-	circleFind.measure(grayMat, CircleFind::INNER2OUTER, CaliperTool::BRIGHT2DARK, 1, 20, 5, 50, CaliperTool::BY_SEARCH_DIR);
+	CaliperTool::Params params;
+	params.polar = CaliperTool::BRIGHT2DARK;
+	params.threshold = 20;
+	params.projectLen = 5;
+	params.outputMode = CaliperTool::BY_SEARCH_DIR;
+	circleFind.measure(grayMat, CircleFind::INNER2OUTER, params, 50);
 
 	circleFind.drawRes(srcMat, cv::Scalar(0, 255, 0), 2);
 	// cv::namedWindow("res", cv::WINDOW_NORMAL);
@@ -99,8 +112,12 @@ void EllipseFindTest(){
 	cv::Mat grayMat;
 	cv::cvtColor(srcMat, grayMat, cv::COLOR_BGR2GRAY);
 
+	CaliperTool::Params params;
+	params.polar = CaliperTool::BRIGHT2DARK;
+	params.threshold = 20;
+	params.projectLen = 30;
 	EllipseFind firstPass(approxCenter, approxRadius, sampleCount);
-	EllipseFind::Ellipse firstResult = firstPass.measure(grayMat, EllipseFind::INNER2OUTER, CaliperTool::BRIGHT2DARK, 1, 20, 30, 150);
+	EllipseFind::Ellipse firstResult = firstPass.measure(grayMat, EllipseFind::INNER2OUTER, params, 150);
 
 	cv::Mat firstDraw = srcMat.clone();
 	firstPass.drawRes(firstDraw, cv::Scalar(0, 255, 0), 2);
@@ -126,9 +143,9 @@ int main()
 {
 	QApplication a(__argc, __argv);
 
-	//CaliperToolTest();
+	CaliperToolTest();
 	CircleFindTest();
-	//EllipseFindTest();
+	EllipseFindTest();
 
 
 	return a.exec();

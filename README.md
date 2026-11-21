@@ -2,8 +2,6 @@
 
 基于opencv库，目前支持算子有:卡尺工具、找圆、找椭圆
 
-
-
-## 新增测量算子可视化支持，使用Qt组件查看测量细节
+## 算子可视化支持，使用Qt组件查看测量细节
 
 Qt组件库: [ShortFlier/ImgLabelView: 基于 Qt Widgets 的图像及标签查看组件](https://github.com/ShortFlier/ImgLabelView)

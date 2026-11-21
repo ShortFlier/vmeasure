@@ -69,17 +69,13 @@ public:
     * 搜索椭圆，使用CaliperTool搜索边缘点
     * 卡尺从0度位置开始，按图片坐标系顺时针摆放
     * @param mat传入图像，灰度图
-    * @param dir搜索方向
-    * @param polar卡尺极性
-    * @param edgeLength卡尺边缘过渡长度
-    * @param threshold卡尺阈值
-    * @param projectLen卡尺投影长度
+    * @param dir搜索方向，参考SearchDir
+    * @param params卡尺参数（极性、边缘长度、阈值、最大结果数、输出模式和投影长度）
+    * 每个卡尺仅使用其首个输出点进行拟合
     * @param searchLen卡尺搜索长度
-    * @param outputMode点输出模式
     */
-    Ellipse measure(const cv::Mat& mat, int dir, int polar,
-                    int edgeLength, int threshold,
-                    int projectLen, int searchLen, int outputMode = 0);
+    Ellipse measure(const cv::Mat& mat, int dir, const CaliperTool::Params& params,
+                    int searchLen);
 
     //绘制定位椭圆、卡尺和测量结果
     virtual void drawRes(cv::Mat& inputoutput, cv::Scalar color, int thickness = 1);
